@@ -1,6 +1,6 @@
 import re
 import json
-import math
+import os
 def formatting(word, urls):
     if "http" in word or "https" in word or "www" in word:
         urls[0] += 1  
@@ -27,7 +27,7 @@ def find_spam(massage):
             try:
                 word = formatting(word, urls)
                 if word in spammers_domains:
-                    return True
+                    return 1
                 try:
                     bad_words_chances = bad_words.get(word, 0.01)
                     good_words_chances = good_words.get(word, 0.01)
@@ -42,30 +42,47 @@ def find_spam(massage):
         prd_spamicity_bad = 1
         prd_spamicity_good = 1
         for spamicity in spamicities:
-            prd_spamicity_bad *= spamicity
-        for spamicity in spamicities:
-            prd_spamicity_good *= (1-spamicity)
+            if spamicity == 0:
+                continue
+            elif spamicity < 0 or spamicity > 1:
+                print(f"Invalid spamicity value: {spamicity}")
+                continue
+            elif spamicity == 1:
+                prd_spamicity_bad *= 0.999
+                prd_spamicity_good *= 0.001
+            elif spamicity == 0:
+                prd_spamicity_bad *= 0.001
+                prd_spamicity_good *= 0.999
+            else:
+                prd_spamicity_good *= (1-spamicity)
+                prd_spamicity_bad *= spamicity
+
         score = prd_spamicity_bad / (prd_spamicity_bad + prd_spamicity_good)
 
         if urls[0] > 0:
-            score += 0.5  
-        
+            score += 0.1
         return score
-        
+
     except FileNotFoundError as e:
         print(f"File not found: {e}")
-        return False
+        return None
     except json.JSONDecodeError as e:
-        print(f"JSON decode error: {e}")
-        return False
-                
+        print(f"Error decoding JSON: {e}")
+        return None
+
+for i in range(1, len(os.listdir("massages")) + 1):
+
+    score = find_spam(f"massages/msg{i}.txt")
+    if score > 0.1005:
+        print(score)
+        print(f"The file msg{i}.txt is spam")
+    else:
+        print(score)
+        print(f"The file msg{i}.txt is not spam")
+    print("-------------------------------------------------\n")
 
 
-if __name__ == "__main__":
-    for i in range(1, 7):
-        if find_spam(f"msg{i}.txt") > 0.5:
-            print(find_spam(f"msg{i}.txt"))
-            print("It is spam")
-        else:
-            print(find_spam(f"msg{i}.txt"))
-            print("It is not spam")
+
+
+
+
